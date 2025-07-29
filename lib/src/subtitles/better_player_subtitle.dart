@@ -16,16 +16,37 @@ class BetterPlayerSubtitle {
 
   factory BetterPlayerSubtitle(String value, bool isWebVTT) {
     try {
-      final scanner = value.split('\n');
-      if (scanner.length == 2) {
-        return _handle2LinesSubtitles(scanner);
+      // Clean up the input and split into lines
+      final lines = value
+          .replaceAll('\r\n', '\n')
+          .replaceAll('\r', '\n')
+          .split('\n')
+          .where((line) => line.trim().isNotEmpty)
+          .toList();
+
+      if (lines.isEmpty) {
+        return BetterPlayerSubtitle._();
       }
-      if (scanner.length > 2) {
-        return _handle3LinesAndMoreSubtitles(scanner, isWebVTT);
+
+      // Handle WebVTT specific parsing
+      if (isWebVTT) {
+        // Skip WebVTT header and style/region blocks
+        if (lines[0].contains('WEBVTT') || 
+            lines[0].contains('STYLE') || 
+            lines[0].contains('REGION')) {
+          return BetterPlayerSubtitle._();
+        }
       }
+
+      if (lines.length == 2) {
+        return _handle2LinesSubtitles(lines);
+      } else if (lines.length >= 2) {
+        return _handle3LinesAndMoreSubtitles(lines, isWebVTT);
+      }
+      
       return BetterPlayerSubtitle._();
-    } on Exception catch (_) {
-      BetterPlayerUtils.log("Failed to parse subtitle line: $value");
+    } catch (e) {
+      BetterPlayerUtils.log("Failed to parse subtitle line: $value\nError: $e");
       return BetterPlayerSubtitle._();
     }
   }
@@ -52,25 +73,45 @@ class BetterPlayerSubtitle {
   static BetterPlayerSubtitle _handle3LinesAndMoreSubtitles(
       List<String> scanner, bool isWebVTT) {
     try {
+      if (scanner.isEmpty) {
+        BetterPlayerUtils.log("Empty subtitle scanner data");
+        return BetterPlayerSubtitle._();
+      }
+      
       int? index = -1;
       List<String> timeSplit = [];
       int firstLineOfText = 0;
+      
       if (scanner[0].contains(timerSeparator)) {
         timeSplit = scanner[0].split(timerSeparator);
         firstLineOfText = 1;
-      } else {
+      } else if (scanner.length > 1) {
         index = int.tryParse(scanner[0]);
         timeSplit = scanner[1].split(timerSeparator);
         firstLineOfText = 2;
+      } else {
+        BetterPlayerUtils.log("Invalid subtitle format: $scanner");
+        return BetterPlayerSubtitle._();
+      }
+
+      if (timeSplit.length < 2) {
+        BetterPlayerUtils.log("Invalid time format in subtitle: $scanner");
+        return BetterPlayerSubtitle._();
       }
 
       final start = _stringToDuration(timeSplit[0]);
       final end = _stringToDuration(timeSplit[1]);
+      
+      if (firstLineOfText >= scanner.length) {
+        BetterPlayerUtils.log("No subtitle text found: $scanner");
+        return BetterPlayerSubtitle._(start: start, end: end);
+      }
+      
       final texts = scanner.sublist(firstLineOfText, scanner.length);
       return BetterPlayerSubtitle._(
           index: index, start: start, end: end, texts: texts);
-    } on Exception catch (_) {
-      BetterPlayerUtils.log("Failed to parse subtitle line: $scanner");
+    } on Exception catch (e) {
+      BetterPlayerUtils.log("Failed to parse subtitle line: $scanner. Error: $e");
       return BetterPlayerSubtitle._();
     }
   }

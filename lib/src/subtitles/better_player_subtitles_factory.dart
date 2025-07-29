@@ -84,31 +84,45 @@ class BetterPlayerSubtitlesFactory {
   }
 
   static List<BetterPlayerSubtitle> _parseString(String value) {
-    List<String> components = value.split('\r\n\r\n');
-    if (components.length == 1) {
-      components = value.split('\n\n');
-    }
+    try {
+      // Normalize line endings and split by double newlines
+      final normalizedValue = value.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
+      List<String> components = normalizedValue.split('\n\n');
 
-    // Skip parsing files with no cues
-    if (components.length == 1) {
+      // Remove empty components and trim whitespace
+      components = components
+          .where((component) => component.trim().isNotEmpty)
+          .toList();
+
+      final List<BetterPlayerSubtitle> subtitlesObj = [];
+      bool isWebVTT = components.isNotEmpty && components[0].trim() == 'WEBVTT';
+      
+      // Skip the WEBVTT header if present
+      if (isWebVTT) {
+        components = components.sublist(1);
+      }
+
+      for (final component in components) {
+        if (component.trim().isEmpty) continue;
+        
+        try {
+          final subtitle = BetterPlayerSubtitle(component, isWebVTT);
+          if (subtitle.start != null &&
+              subtitle.end != null &&
+              subtitle.texts != null &&
+              subtitle.texts!.isNotEmpty) {
+            subtitlesObj.add(subtitle);
+          }
+        } catch (e) {
+          BetterPlayerUtils.log('Failed to parse subtitle cue: $e\n$component');
+          continue;
+        }
+      }
+
+      return subtitlesObj;
+    } catch (e) {
+      BetterPlayerUtils.log('Error parsing subtitles: $e');
       return [];
     }
-
-    final List<BetterPlayerSubtitle> subtitlesObj = [];
-
-    final bool isWebVTT = components.contains("WEBVTT");
-    for (final component in components) {
-      if (component.isEmpty) {
-        continue;
-      }
-      final subtitle = BetterPlayerSubtitle(component, isWebVTT);
-      if (subtitle.start != null &&
-          subtitle.end != null &&
-          subtitle.texts != null) {
-        subtitlesObj.add(subtitle);
-      }
-    }
-
-    return subtitlesObj;
   }
 }

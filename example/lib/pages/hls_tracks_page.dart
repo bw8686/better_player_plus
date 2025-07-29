@@ -23,9 +23,13 @@ class _HlsTracksPageState extends State<HlsTracksPage> {
       useAsmsSubtitles: true,
     );
     _betterPlayerController = BetterPlayerController(betterPlayerConfiguration);
-    _betterPlayerController.setupDataSource(dataSource);
+    _betterPlayerController.setupDataSource(
+      dataSource,
+    );
     super.initState();
   }
+
+  final TextEditingController _urlController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -47,6 +51,26 @@ class _HlsTracksPageState extends State<HlsTracksPage> {
           AspectRatio(
             aspectRatio: 16 / 9,
             child: BetterPlayer(controller: _betterPlayerController),
+          ),
+          TextField(
+            controller: _urlController,
+          ),
+          ElevatedButton(
+            onPressed: () {
+              BetterPlayerDataSource dataSource = BetterPlayerDataSource(
+                BetterPlayerDataSourceType.network,
+                _urlController.text,
+                useAsmsSubtitles: true,
+                headers: {
+                  'Cookie':
+                      'sails.sid=s%3AaM93otK1qZVuQP-1X8oCjygIWoj6koi4.HzsPdlUHLsBbJLTsZcQEGyP3xzZsy8BsHVUabnAbLtQ',
+                  'Referer': 'https://www.floatplane.com/',
+                  'Origin': 'https://www.floatplane.com',
+                },
+              );
+              _betterPlayerController.setupDataSource(dataSource);
+            },
+            child: Text("Load tracks"),
           ),
         ],
       ),

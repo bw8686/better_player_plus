@@ -522,6 +522,7 @@ class BetterPlayerController {
         }
         break;
 
+      // ignore: unreachable_switch_default
       default:
         throw UnimplementedError(
             "${betterPlayerDataSource.type} is not implemented");

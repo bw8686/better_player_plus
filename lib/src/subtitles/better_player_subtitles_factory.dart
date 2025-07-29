@@ -72,6 +72,10 @@ class BetterPlayerSubtitlesFactory {
   static List<BetterPlayerSubtitle> _parseSubtitlesFromMemory(
       BetterPlayerSubtitlesSource source) {
     try {
+      if (source.content == null || source.content!.isEmpty) {
+        BetterPlayerUtils.log("Subtitle content is null or empty");
+        return [];
+      }
       return _parseString(source.content!);
     } on Exception catch (exception) {
       BetterPlayerUtils.log("Failed to read subtitles from memory: $exception");

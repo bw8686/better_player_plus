@@ -3,6 +3,7 @@ package com.jhomlala.better_player_example
 import android.app.*
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import androidx.annotation.RequiresApi
@@ -32,9 +33,8 @@ class BetterPlayerService : Service() {
         val pendingIntent =
             PendingIntent.getActivity(
                 this, 0, notificationIntent,
-                PendingIntent.FLAG_IMMUTABLE
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
             )
-
 
         val notificationBuilder = NotificationCompat.Builder(this, channelId)
             .setContentTitle("Better Player Notification")
@@ -45,9 +45,16 @@ class BetterPlayerService : Service() {
             .setContentIntent(pendingIntent)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            notificationBuilder.setCategory(Notification.CATEGORY_SERVICE);
+            notificationBuilder.setCategory(Notification.CATEGORY_SERVICE)
         }
-        startForeground(foregroundNotificationId, notificationBuilder.build())
+        
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(foregroundNotificationId, notificationBuilder.build(), 
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
+        } else {
+            startForeground(foregroundNotificationId, notificationBuilder.build())
+        }
+        
         return START_NOT_STICKY
     }
 
@@ -70,10 +77,9 @@ class BetterPlayerService : Service() {
                 ) as NotificationManager
             notificationManager.cancel(notificationId)
         } catch (exception: Exception) {
-
+            // Ignore
         } finally {
             stopSelf()
         }
     }
-
 }
